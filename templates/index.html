@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pong (p5.js)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+        :root {
+            --cyan:    #00f5ff;
+            --magenta: #ff00c8;
+            --yellow:  #f5e642;
+            --green:   #4cff91;
+            --red:     #ff4c4c;
+            --bg:      #060610;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            min-height: 100vh;
+            padding: 24px 0 60px;
+            text-align: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background:
+                radial-gradient(ellipse 600px 400px at 10% 20%, rgba(0,245,255,0.07) 0%, transparent 70%),
+                radial-gradient(ellipse 500px 500px at 90% 80%, rgba(255,0,200,0.07) 0%, transparent 70%),
+                radial-gradient(ellipse 400px 300px at 50% 110%, rgba(245,230,66,0.05) 0%, transparent 70%);
+            pointer-events: none; z-index: 0;
+            animation: blobshift 12s ease-in-out infinite alternate;
+        }
+        @keyframes blobshift { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+        body::after {
+            content: '';
+            position: fixed; inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+            pointer-events: none; z-index: 1;
+        }
+        .corner { position: fixed; width: 80px; height: 80px; pointer-events: none; z-index: 2; }
+        .corner::before, .corner::after { content: ''; position: absolute; background: var(--cyan); }
+        .corner::before { width: 2px; height: 100%; }
+        .corner::after  { width: 100%; height: 2px; }
+        .corner.tl { top: 12px; left: 12px; }
+        .corner.tl::before { top: 0; left: 0; }
+        .corner.tl::after  { top: 0; left: 0; }
+        .corner.tr { top: 12px; right: 12px; transform: scaleX(-1); }
+        .corner.br { bottom: 12px; right: 12px; transform: scale(-1); }
+        .corner.bl { bottom: 12px; left: 12px; transform: scaleY(-1); }
+        .corner.tr::before,.corner.br::before { background: var(--magenta); }
+        .corner.tr::after, .corner.br::after  { background: var(--magenta); }
+        .strip { position: fixed; top: 0; bottom: 0; width: 3px; z-index: 2; pointer-events: none; }
+        .strip.left  { left:0; background: linear-gradient(to bottom, transparent, var(--cyan) 20%, var(--magenta) 50%, var(--yellow) 80%, transparent); animation: stripglow 4s ease-in-out infinite alternate; }
+        .strip.right { right:0; background: linear-gradient(to bottom, transparent, var(--magenta) 20%, var(--cyan) 50%, var(--green) 80%, transparent); animation: stripglow 4s ease-in-out infinite alternate-reverse; }
+        @keyframes stripglow { from { opacity:.5; filter:blur(0px); } to { opacity:1; filter:blur(1px); } }
+        .hstrip { position: fixed; left:0; right:0; height:3px; z-index:2; pointer-events:none; }
+        .hstrip.top    { top:0;    background: linear-gradient(to right, transparent, var(--cyan) 20%, var(--magenta) 50%, var(--yellow) 80%, transparent); }
+        .hstrip.bottom { bottom:0; background: linear-gradient(to right, transparent, var(--green) 20%, var(--cyan) 50%, var(--magenta) 80%, transparent); }
+
+        /* Layout */
+        #layout { position: relative; z-index: 3; display: flex; justify-content: center; align-items: flex-start; gap: 16px; margin: 0 auto; }
+        .side-buttons { display: flex; flex-direction: column; gap: 10px; width: 130px; flex-shrink: 0; }
+        .side-btn {
+            background: transparent;
+            border: 1px solid #222;
+            color: #666;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding: 10px 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #btn-stats:hover, #btn-stats.active { border-color: var(--cyan);    color: var(--cyan);    box-shadow: 0 0 12px rgba(0,245,255,0.3); }
+        #btn-htp:hover,   #btn-htp.active   { border-color: var(--magenta); color: var(--magenta); box-shadow: 0 0 12px rgba(255,0,200,0.3); }
+        #btn-skins:hover,  #btn-skins.active  { border-color: var(--yellow);  color: var(--yellow);  box-shadow: 0 0 12px rgba(245,230,66,0.3); }
+        #btn-levels:hover, #btn-levels.active { border-color: var(--green);   color: var(--green);   box-shadow: 0 0 12px rgba(76,255,145,0.3); }
+
+        #centre { display: flex; flex-direction: column; align-items: center; }
+        #game-wrap {
+            position: relative; padding: 3px;
+            background: linear-gradient(135deg, var(--cyan), var(--magenta), var(--yellow), var(--cyan));
+            background-size: 300% 300%;
+            animation: bordershift 6s ease infinite;
+            box-shadow: 0 0 20px rgba(0,245,255,0.3), 0 0 40px rgba(255,0,200,0.15);
+        }
+        @keyframes bordershift { 0%,100% { background-position:0% 50%; } 50% { background-position:100% 50%; } }
+        #game-container { width: 800px; height: 400px; position: relative; display: block; background: #000; }
+        #game-container canvas { position: relative !important; top: auto !important; left: auto !important; display: block; }
+
+        #high-score { font-size: 36px; letter-spacing: 3px; margin-top: 22px; text-shadow: 0 0 20px rgba(245,230,66,0.6); }
+        #high-score span { color: var(--yellow); }
+
+        /* Panels */
+        .panel {
+            display: none; width: 806px; margin-top: 20px;
+            border: 1px solid #1a1a2e; padding: 28px 32px;
+            text-align: left; background: rgba(6,6,16,0.95); position: relative;
+        }
+        .panel::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+        #stats-panel::before { background: linear-gradient(to right, var(--cyan), var(--green)); }
+        #htp-panel::before   { background: linear-gradient(to right, var(--magenta), var(--yellow)); }
+        #skins-panel::before  { background: linear-gradient(to right, var(--yellow), var(--magenta)); }
+        #levels-panel::before { background: linear-gradient(to right, var(--green), var(--cyan)); }
+        .panel.visible { display: block; }
+        #stats-panel.visible { display: flex; gap: 0; }
+
+        /* Stats */
+        .stat-player { flex:1; padding: 0 24px; }
+        .stat-player:first-child { border-right: 1px solid #1a1a2e; padding-left: 0; }
+        .stat-player:last-child  { padding-right: 0; }
+        .stat-player h3 { font-size: 12px; letter-spacing: 0.3em; color: #888; margin-bottom: 18px; }
+        .stat-row { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; }
+        .stat-label { color:#444; letter-spacing:0.1em; }
+        .stat-value { font-size:15px; color:#fff; }
+        .stat-value.good { color: var(--green); text-shadow: 0 0 8px rgba(76,255,145,0.5); }
+        .stat-value.bad  { color: var(--red);   text-shadow: 0 0 8px rgba(255,76,76,0.5); }
+        .stat-bar-wrap { height:4px; background:#111; margin-bottom:16px; }
+        .stat-bar { height:100%; transition: width 0.4s ease; }
+        .stat-bar.good { background: var(--green); box-shadow: 0 0 6px rgba(76,255,145,0.6); }
+        .stat-bar.bad  { background: var(--red);   box-shadow: 0 0 6px rgba(255,76,76,0.6); }
+
+        /* How to play */
+        #htp-panel h2 { font-size:16px; letter-spacing:0.4em; margin-bottom:24px; color: var(--magenta); text-shadow: 0 0 12px rgba(255,0,200,0.5); }
+        .controls { display:flex; justify-content:space-around; font-size:14px; line-height:2.4; color:#aaa; }
+        .controls .player h3 { font-size:13px; letter-spacing:0.2em; color: var(--cyan); margin-bottom:6px; text-shadow: 0 0 8px rgba(0,245,255,0.4); }
+        kbd { background:#0a0a18; border:1px solid #333; border-bottom:2px solid #444; border-radius:3px; padding:2px 8px; font-family:'Share Tech Mono',monospace; color: var(--yellow); }
+        #htp-panel p { margin-top:20px; color:#444; font-size:12px; letter-spacing:0.08em; }
+
+        /* Skins panel */
+        #skins-panel h2 { font-size:14px; letter-spacing:0.4em; color: var(--yellow); text-shadow: 0 0 12px rgba(245,230,66,0.5); margin-bottom:24px; }
+
+        /* Levels panel */
+        #levels-panel h2 { font-size:14px; letter-spacing:0.4em; color: var(--green); text-shadow: 0 0 12px rgba(76,255,145,0.5); margin-bottom:24px; }
+        .level-cards { display: flex; gap: 20px; }
+        .level-card {
+            flex: 1; border: 1px solid #222; padding: 20px;
+            cursor: pointer; transition: all 0.2s ease; position: relative;
+            background: transparent;
+        }
+        .level-card:hover { border-color: #444; background: rgba(255,255,255,0.03); }
+        .level-card.selected { border-color: var(--green); box-shadow: 0 0 16px rgba(76,255,145,0.2); }
+        .level-card.selected::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: var(--green); }
+        .level-card h3 { font-size:13px; letter-spacing:0.3em; color:#fff; margin-bottom:10px; }
+        .level-card .level-num { font-size:32px; color: var(--green); margin-bottom:12px; display:block; text-shadow: 0 0 16px rgba(76,255,145,0.6); }
+        .level-card p { font-size:11px; color:#555; letter-spacing:0.08em; line-height:1.8; }
+        .level-card.selected .level-num { color: var(--green); }
+        .level-preview {
+            width: 100%; height: 50px; background: #0a0a0a;
+            border: 1px solid #1a1a1a; margin-bottom: 14px;
+            position: relative; overflow: hidden;
+        }
+        .lp-paddle { position:absolute; width:4px; background:#fff; top:50%; transform:translateY(-50%); }
+        .lp-paddle.left  { left:4px;  height:20px; }
+        .lp-paddle.right { right:4px; height:20px; }
+        .lp-paddle.mid   { left:50%; transform:translate(-50%,-50%); height:18px; background: #ff7820; animation: midpulse 1.2s ease-in-out infinite alternate; }
+        @keyframes midpulse { from { box-shadow: 0 0 4px #ff7820; } to { box-shadow: 0 0 12px #ff7820; } }
+        .skins-players { display:flex; gap:0; }
+        .skins-col { flex:1; padding: 0 24px; }
+        .skins-col:first-child { border-right:1px solid #1a1a2e; padding-left:0; }
+        .skins-col:last-child  { padding-right:0; }
+        .skins-col h3 { font-size:12px; letter-spacing:0.3em; color:#888; margin-bottom:16px; }
+        .swatches { display:flex; flex-wrap:wrap; gap:10px; }
+        .swatch {
+            width: 48px; height: 48px;
+            border: 2px solid #222;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 9px; letter-spacing: 0.05em; color: rgba(0,0,0,0.6);
+            font-family: 'Share Tech Mono', monospace;
+            transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+            position: relative;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .swatch:hover { transform: scale(1.1); }
+        .swatch.selected { border-color: #fff; box-shadow: 0 0 14px rgba(255,255,255,0.4); }
+        .swatch .swatch-label { font-size: 8px; color: rgba(255,255,255,0.7); position: absolute; bottom: 4px; }
+
+        #back { position:relative; z-index:3; display:inline-block; font-size:12px; letter-spacing:0.2em; color:#333; text-decoration:none; margin-bottom:16px; transition:color 0.15s; }
+        #back:hover { color: var(--cyan); }
+    </style>
+</head>
+<body>
+
+<div class="strip left"></div>
+<div class="strip right"></div>
+<div class="hstrip top"></div>
+<div class="hstrip bottom"></div>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner br"></div>
+<div class="corner bl"></div>
+
+<a id="back" href="/">← Back</a>
+
+<script src="{{ url_for('static', filename='js/sketch.js') }}"></script>
+
+<div id="layout">
+    <div class="side-buttons">
+        <button class="side-btn" id="btn-stats"  onclick="togglePanel('stats')">Statistics</button>
+        <button class="side-btn" id="btn-htp"    onclick="togglePanel('htp')">How to Play</button>
+        <button class="side-btn" id="btn-skins"  onclick="togglePanel('skins')">Skins</button>
+        <button class="side-btn" id="btn-levels" onclick="togglePanel('levels')">Levels</button>
+    </div>
+
+    <div id="centre">
+        <div id="game-wrap">
+            <div id="game-container"></div>
+        </div>
+
+        <div id="high-score">HIGH SCORE: <span id="high-score-value">0</span></div>
+
+        <!-- Stats panel -->
+        <div id="stats-panel" class="panel">
+            <div class="stat-player">
+                <h3>PLAYER 1</h3>
+                <div class="stat-row"><span class="stat-label">SCORED</span><span class="stat-value good" id="p1-score-rate">0%</span></div>
+                <div class="stat-bar-wrap"><div class="stat-bar good" id="p1-score-bar" style="width:0%"></div></div>
+                <div class="stat-row"><span class="stat-label">MISSED</span><span class="stat-value bad" id="p1-miss-rate">0%</span></div>
+                <div class="stat-bar-wrap"><div class="stat-bar bad" id="p1-miss-bar" style="width:0%"></div></div>
+            </div>
+            <div class="stat-player">
+                <h3>PLAYER 2</h3>
+                <div class="stat-row"><span class="stat-label">SCORED</span><span class="stat-value good" id="p2-score-rate">0%</span></div>
+                <div class="stat-bar-wrap"><div class="stat-bar good" id="p2-score-bar" style="width:0%"></div></div>
+                <div class="stat-row"><span class="stat-label">MISSED</span><span class="stat-value bad" id="p2-miss-rate">0%</span></div>
+                <div class="stat-bar-wrap"><div class="stat-bar bad" id="p2-miss-bar" style="width:0%"></div></div>
+            </div>
+        </div>
+
+        <!-- How to play panel -->
+        <div id="htp-panel" class="panel">
+            <h2>HOW TO PLAY</h2>
+            <div class="controls">
+                <div class="player">
+                    <h3>PLAYER 1 — LEFT</h3>
+                    <div><kbd>W</kbd> Move Up</div>
+                    <div><kbd>S</kbd> Move Down</div>
+                </div>
+                <div class="player">
+                    <h3>PLAYER 2 — RIGHT</h3>
+                    <div><kbd>↑</kbd> Move Up</div>
+                    <div><kbd>↓</kbd> Move Down</div>
+                </div>
+            </div>
+            <p>Don't let the ball get past your paddle. First player to miss gives the other a point.</p>
+        </div>
+
+        <!-- Skins panel -->
+        <div id="skins-panel" class="panel">
+            <h2>PADDLE SKINS</h2>
+            <div class="skins-players">
+                <div class="skins-col">
+                    <h3>PLAYER 1</h3>
+                    <div class="swatches" id="p1-swatches"></div>
+                </div>
+                <div class="skins-col">
+                    <h3>PLAYER 2</h3>
+                    <div class="swatches" id="p2-swatches"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Levels panel -->
+        <div id="levels-panel" class="panel">
+            <h2>SELECT LEVEL</h2>
+            <div class="level-cards">
+                <div class="level-card selected" id="level-card-1" onclick="selectLevel(1)">
+                    <span class="level-num">01</span>
+                    <h3>CLASSIC</h3>
+                    <div class="level-preview">
+                        <div class="lp-paddle left"></div>
+                        <div class="lp-paddle right"></div>
+                    </div>
+                    <p>Standard two-player pong. Use your paddle to keep the ball in play and score past your opponent.</p>
+                </div>
+                <div class="level-card" id="level-card-2" onclick="selectLevel(2)">
+                    <span class="level-num">02</span>
+                    <h3>OBSTACLE</h3>
+                    <div class="level-preview">
+                        <div class="lp-paddle left"></div>
+                        <div class="lp-paddle mid"></div>
+                        <div class="lp-paddle right"></div>
+                    </div>
+                    <p>A CPU-controlled paddle bounces up and down in the centre of the court, blocking shots from both sides.</p>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end #centre -->
+</div>
+
+<script>
+    // Skin definitions (must mirror sketch.js SKINS array)
+    const SKIN_DEFS = [
+        { name: 'Classic', bg: '#ffffff',                    text: '#000' },
+        { name: 'Cyan',    bg: '#00f5ff',                    text: '#000', glow: 'rgba(0,245,255,0.7)' },
+        { name: 'Magenta', bg: '#ff00c8',                    text: '#000', glow: 'rgba(255,0,200,0.7)'  },
+        { name: 'Yellow',  bg: '#f5e642',                    text: '#000', glow: 'rgba(245,230,66,0.7)' },
+        { name: 'Green',   bg: '#4cff91',                    text: '#000', glow: 'rgba(76,255,145,0.7)' },
+        { name: 'Red',     bg: '#ff4c4c',                    text: '#000', glow: 'rgba(255,76,76,0.7)'  },
+        { name: 'Orange',  bg: '#ffa500',                    text: '#000', glow: 'rgba(255,165,0,0.7)'  },
+        { name: 'Ghost',   bg: 'rgba(255,255,255,0.25)',     text: '#fff', border: '#555' },
+    ];
+
+    function buildSwatches(containerId, player) {
+        const wrap = document.getElementById(containerId);
+        SKIN_DEFS.forEach((skin, i) => {
+            const div = document.createElement('div');
+            div.className = 'swatch' + (i === 0 ? ' selected' : '');
+            div.id = `${containerId}-swatch-${i}`;
+            div.style.background = skin.bg;
+            if (skin.border) div.style.borderColor = skin.border;
+            if (skin.glow)   div.style.boxShadow = `0 0 10px ${skin.glow}`;
+            div.title = skin.name;
+            const label = document.createElement('span');
+            label.className = 'swatch-label';
+            label.textContent = skin.name;
+            label.style.color = skin.text === '#000' ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.7)';
+            div.appendChild(label);
+            div.addEventListener('click', () => selectSkin(containerId, player, i, skin));
+            wrap.appendChild(div);
+        });
+    }
+
+    function selectSkin(containerId, player, index, skin) {
+        // Update UI selection
+        document.querySelectorAll(`#${containerId} .swatch`).forEach((s, i) => {
+            s.classList.toggle('selected', i === index);
+            if (i === index && skin.glow) {
+                s.style.boxShadow = `0 0 16px ${skin.glow}, 0 0 4px #fff`;
+            }
+        });
+        // Tell p5 sketch
+        if (typeof setSkin === 'function') setSkin(player, index);
+    }
+
+    buildSwatches('p1-swatches', 1);
+    buildSwatches('p2-swatches', 2);
+
+    // Panel toggle
+    let activePanel = null;
+    const panels  = { stats: 'stats-panel', htp: 'htp-panel', skins: 'skins-panel', levels: 'levels-panel' };
+    const buttons = { stats: 'btn-stats',   htp: 'btn-htp',   skins: 'btn-skins',   levels: 'btn-levels'   };
+
+    function togglePanel(name) {
+        Object.keys(panels).forEach(k => {
+            document.getElementById(panels[k]).classList.toggle('visible', k === name && activePanel !== name);
+            document.getElementById(buttons[k]).classList.toggle('active', k === name && activePanel !== name);
+        });
+        activePanel = activePanel === name ? null : name;
+    }
+
+    function selectLevel(level) {
+        document.getElementById('level-card-1').classList.toggle('selected', level === 1);
+        document.getElementById('level-card-2').classList.toggle('selected', level === 2);
+        if (typeof setLevel === 'function') setLevel(level);
+    }
+</script>
+
+</body>
+</html>
