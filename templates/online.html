@@ -175,6 +175,42 @@
 
         #disconnect-msg a:hover { border-color: #fff; }
 
+        /* ── Pause overlay ── */
+        #pause-msg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 200;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+        }
+
+        #pause-msg h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 48px;
+            letter-spacing: 0.3em;
+            color: #f5e642;
+        }
+
+        #pause-subtext {
+            font-size: 13px;
+            letter-spacing: 0.3em;
+            color: #888;
+        }
+
+        #pause-votes {
+            font-size: 13px;
+            letter-spacing: 0.2em;
+            color: #555;
+        }
+
+        #pause-votes.one-ready {
+            color: #f5e642;
+        }
+
         #stats {
             display: flex;
             justify-content: space-between;
@@ -265,6 +301,13 @@
     <a href="/">Home</a>
 </div>
 
+<!-- Pause overlay -->
+<div id="pause-msg">
+    <h2>PAUSED</h2>
+    <div id="pause-subtext">PRESS P TO READY UP</div>
+    <div id="pause-votes">0 / 2 READY</div>
+</div>
+
 <script>
 // ── Constants ────────────────────────────────────────────────────────────────
 const CANVAS_W = 800, CANVAS_H = 400;
@@ -275,6 +318,8 @@ const BALL_SIZE = 14;
 let socket;
 let myPlayerNumber = null;   // 1 = left, 2 = right
 let gameStarted = false;
+let paused = false;
+let myUnpauseReady = false;
 
 let myPaddleY, opponentPaddleY;
 let myPaddleSpeed = 0;
@@ -313,7 +358,6 @@ function initSocket() {
 
     socket.on('ball_sync', (data) => {
         if (myPlayerNumber === 2) {
-            // Mirror ball X for player 2
             ballX = CANVAS_W - data.x - BALL_SIZE;
             ballY = data.y;
         }
@@ -329,6 +373,29 @@ function initSocket() {
 
     socket.on('opponent_disconnected', () => {
         document.getElementById('disconnect-msg').style.display = 'flex';
+    });
+
+    socket.on('game_paused', (data) => {
+        paused = true;
+        myUnpauseReady = false;
+        const who = data.by === myPlayerNumber ? 'YOU PAUSED' : 'OPPONENT PAUSED';
+        document.getElementById('pause-subtext').textContent = who + ' — PRESS P TO READY UP';
+        document.getElementById('pause-votes').textContent = '0 / 2 READY';
+        document.getElementById('pause-votes').classList.remove('one-ready');
+        document.getElementById('pause-msg').style.display = 'flex';
+    });
+
+    socket.on('unpause_votes', (data) => {
+        document.getElementById('pause-votes').textContent = data.count + ' / 2 READY';
+        if (data.count >= 1) {
+            document.getElementById('pause-votes').classList.add('one-ready');
+        }
+    });
+
+    socket.on('game_resumed', () => {
+        paused = false;
+        myUnpauseReady = false;
+        document.getElementById('pause-msg').style.display = 'none';
     });
 }
 
@@ -391,13 +458,12 @@ new p5(function(p) {
 
     p.draw = function() {
         p.background(0);
-        if (!gameStarted) return;
+        if (!gameStarted || paused) return;
 
         handleInput(p);
         if (myPlayerNumber === 1) {
             moveBall(p);
             checkCollisions(p);
-            // Send ball state to server for player 2
             socket.emit('ball_update', { x: ballX, y: ballY });
             socket.emit('score_update', { p1: myScore, p2: opponentScore });
         }
@@ -408,10 +474,22 @@ new p5(function(p) {
         drawScore(p);
     };
 
+    p.keyPressed = function() {
+        if (!gameStarted) return;
+        if (p.key === 'p' || p.key === 'P') {
+            if (!paused) {
+                socket.emit('pause_game');
+            } else if (!myUnpauseReady) {
+                myUnpauseReady = true;
+                document.getElementById('pause-subtext').textContent = 'WAITING FOR OPPONENT...';
+                socket.emit('unpause_ready');
+            }
+        }
+    };
+
     function handleInput(p) {
         myPaddleSpeed = 0;
 
-        // Player 1 uses W/S, Player 2 uses arrow keys
         let upKey   = myPlayerNumber === 1 ? 87 : p.UP_ARROW;
         let downKey = myPlayerNumber === 1 ? 83 : p.DOWN_ARROW;
 
@@ -420,7 +498,6 @@ new p5(function(p) {
 
         myPaddleY = p.constrain(myPaddleY, 0, CANVAS_H - PADDLE_H);
 
-        // Send my paddle position to server
         socket.emit('paddle_move', { y: myPaddleY });
     }
 
@@ -451,7 +528,6 @@ new p5(function(p) {
     }
 
     function checkCollisions(p) {
-        // My paddle is always on the left from player 1's perspective
         let leftY  = myPaddleY;
         let rightY = opponentPaddleY;
 
@@ -482,7 +558,6 @@ new p5(function(p) {
     function drawPaddles(p) {
         p.noStroke();
         p.fill(255);
-        // My paddle always on left visually, opponent on right
         if (myPlayerNumber === 1) {
             p.rect(0, myPaddleY, PADDLE_W, PADDLE_H);
             p.rect(CANVAS_W - PADDLE_W, opponentPaddleY, PADDLE_W, PADDLE_H);
@@ -510,7 +585,6 @@ new p5(function(p) {
         p.textAlign(p.CENTER, p.CENTER);
         p.textSize(32);
         p.fill(255);
-        // My score on left, opponent on right
         p.text(myScore, CANVAS_W / 4, 40);
         p.text(opponentScore, CANVAS_W * 3 / 4, 40);
     }

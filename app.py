@@ -15,6 +15,7 @@ waiting_player = None        # sid of player waiting for a match
 rooms = {}                   # room_id -> { players: [sid1, sid2], scores: [0, 0] }
 player_rooms = {}            # sid -> room_id
 player_numbers = {}          # sid -> 1 or 2
+room_pause_state = {}        # room_id -> set of sids ready to unpause
 
 def read_high_score():
     if not os.path.exists(HIGH_SCORE_FILE):
@@ -62,11 +63,9 @@ def on_find_game():
     sid = request.sid
 
     if waiting_player is None or waiting_player == sid:
-        # No one waiting — join the queue
         waiting_player = sid
         emit('waiting', {})
     else:
-        # Match found — create a room
         room_id = str(uuid.uuid4())[:8]
         p1 = waiting_player
         p2 = sid
@@ -81,7 +80,6 @@ def on_find_game():
         join_room(room_id, sid=p1)
         join_room(room_id, sid=p2)
 
-        # Tell both players the game is starting
         socketio.emit('game_start', {'player': 1, 'room': room_id}, to=p1)
         socketio.emit('game_start', {'player': 2, 'room': room_id}, to=p2)
 
@@ -91,12 +89,10 @@ def on_paddle_move(data):
     room_id = player_rooms.get(sid)
     if not room_id:
         return
-    # Broadcast paddle position to the other player in the room
     emit('opponent_paddle', {'y': data['y']}, room=room_id, skip_sid=sid)
 
 @socketio.on('ball_update')
 def on_ball_update(data):
-    # Only player 1 sends ball updates
     sid = request.sid
     room_id = player_rooms.get(sid)
     if not room_id or player_numbers.get(sid) != 1:
@@ -111,6 +107,30 @@ def on_score_update(data):
         return
     emit('score_sync', data, room=room_id, skip_sid=sid)
 
+@socketio.on('pause_game')
+def on_pause_game():
+    sid = request.sid
+    room_id = player_rooms.get(sid)
+    if not room_id:
+        return
+    room_pause_state[room_id] = set()  # reset unpause votes
+    socketio.emit('game_paused', {'by': player_numbers.get(sid)}, room=room_id)
+
+@socketio.on('unpause_ready')
+def on_unpause_ready():
+    sid = request.sid
+    room_id = player_rooms.get(sid)
+    if not room_id:
+        return
+    if room_id not in room_pause_state:
+        room_pause_state[room_id] = set()
+    room_pause_state[room_id].add(sid)
+    ready_count = len(room_pause_state[room_id])
+    socketio.emit('unpause_votes', {'count': ready_count}, room=room_id)
+    if len(rooms[room_id]['players']) == ready_count:
+        del room_pause_state[room_id]
+        socketio.emit('game_resumed', {}, room=room_id)
+
 @socketio.on('disconnect')
 def on_disconnect():
     global waiting_player
@@ -122,7 +142,7 @@ def on_disconnect():
     room_id = player_rooms.get(sid)
     if room_id and room_id in rooms:
         emit('opponent_disconnected', {}, room=room_id, skip_sid=sid)
-        # Clean up room
+        room_pause_state.pop(room_id, None)
         for player in rooms[room_id]['players']:
             player_rooms.pop(player, None)
             player_numbers.pop(player, None)
@@ -130,6 +150,6 @@ def on_disconnect():
 
 if __name__ == "__main__":
     import os
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT", 5000))
     print(port)
     socketio.run(app, host="0.0.0.0", port=port)
