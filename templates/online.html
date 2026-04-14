@@ -50,7 +50,6 @@
             color: #888;
         }
 
-        /* Ping pong animation */
         .court-anim {
             width: 300px;
             height: 60px;
@@ -143,6 +142,75 @@
 
         #high-score span { color: #f5e642; }
 
+        /* Leave button */
+        #leave-btn {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            color: #444;
+            background: transparent;
+            border: 1px solid #222;
+            padding: 8px 20px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.15s;
+        }
+        #leave-btn:hover {
+            color: #ff4c4c;
+            border-color: #ff4c4c;
+            box-shadow: 0 0 10px rgba(255,76,76,0.3);
+        }
+
+        /* Leave confirm overlay */
+        #leave-confirm {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 300;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        #leave-confirm h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            letter-spacing: 0.2em;
+            color: #ff4c4c;
+        }
+
+        #leave-confirm p {
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            color: #555;
+        }
+
+        .leave-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+        }
+
+        .leave-buttons button, .leave-buttons a {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            text-decoration: none;
+            border: 1px solid #555;
+            padding: 12px 24px;
+            cursor: pointer;
+            background: transparent;
+            transition: all 0.15s;
+        }
+
+        .btn-leave { color: #ff4c4c; border-color: #ff4c4c !important; }
+        .btn-leave:hover { background: rgba(255,76,76,0.1) !important; }
+        .btn-stay  { color: #fff; }
+        .btn-stay:hover { border-color: #fff !important; }
+
+        /* Disconnect overlay */
         #disconnect-msg {
             display: none;
             position: fixed;
@@ -172,7 +240,6 @@
             padding: 12px 28px;
             transition: border-color 0.15s;
         }
-
         #disconnect-msg a:hover { border-color: #fff; }
 
         /* ── Pause overlay ── */
@@ -195,22 +262,73 @@
             color: #f5e642;
         }
 
-        #pause-subtext {
-            font-size: 13px;
-            letter-spacing: 0.3em;
+        #pause-subtext { font-size: 13px; letter-spacing: 0.3em; color: #888; }
+        #pause-votes   { font-size: 13px; letter-spacing: 0.2em; color: #555; }
+        #pause-votes.one-ready { color: #f5e642; }
+
+        /* ── Game over overlay ── */
+        #gameover-msg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.92);
+            z-index: 200;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        #gameover-msg .result-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            letter-spacing: 0.4em;
             color: #888;
         }
 
-        #pause-votes {
-            font-size: 13px;
+        #gameover-msg .result-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 56px;
             letter-spacing: 0.2em;
+            line-height: 1;
+        }
+
+        #gameover-msg .result-title.win  { color: #4cff91; text-shadow: 0 0 30px rgba(76,255,145,0.6); }
+        #gameover-msg .result-title.loss { color: #ff4c4c; text-shadow: 0 0 30px rgba(255,76,76,0.6); }
+
+        #gameover-msg .final-score {
+            font-size: 22px;
+            letter-spacing: 0.3em;
             color: #555;
+            margin-top: 4px;
         }
 
-        #pause-votes.one-ready {
-            color: #f5e642;
+        #gameover-msg .final-score span { color: #fff; }
+
+        .gameover-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
         }
 
+        .gameover-buttons a {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            color: #fff;
+            text-decoration: none;
+            border: 1px solid #555;
+            padding: 12px 28px;
+            transition: border-color 0.15s;
+        }
+        .gameover-buttons a:hover { border-color: #fff; }
+        .gameover-buttons a.primary {
+            border-color: #4cff91;
+            color: #4cff91;
+        }
+        .gameover-buttons a.primary:hover { background: rgba(76,255,145,0.1); }
+
+        /* Stats */
         #stats {
             display: flex;
             justify-content: space-between;
@@ -220,18 +338,8 @@
         }
         .stat-player { flex: 1; padding: 20px; }
         .stat-player:first-child { border-right: 1px solid #222; }
-        .stat-player h3 {
-            font-size: 13px;
-            letter-spacing: 0.3em;
-            color: #888;
-            margin-bottom: 16px;
-        }
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            margin-bottom: 4px;
-        }
+        .stat-player h3 { font-size: 13px; letter-spacing: 0.3em; color: #888; margin-bottom: 16px; }
+        .stat-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
         .stat-label { color: #555; letter-spacing: 0.1em; }
         .stat-value { color: #fff; font-size: 16px; }
         .stat-value.good { color: #4cff91; }
@@ -262,33 +370,22 @@
     <div id="game-container"></div>
     <div id="below-game">
         <div id="high-score">GLOBAL HIGH SCORE: <span id="high-score-value">0</span></div>
+        <button id="leave-btn" onclick="showLeaveConfirm()">Leave Match</button>
     </div>
 
     <div id="stats">
         <div class="stat-player">
             <h3>YOU</h3>
-            <div class="stat-row">
-                <span class="stat-label">SCORED</span>
-                <span class="stat-value good" id="my-score-rate">0%</span>
-            </div>
+            <div class="stat-row"><span class="stat-label">SCORED</span><span class="stat-value good" id="my-score-rate">0%</span></div>
             <div class="stat-bar-wrap"><div class="stat-bar good" id="my-score-bar" style="width:0%"></div></div>
-            <div class="stat-row">
-                <span class="stat-label">MISSED</span>
-                <span class="stat-value bad" id="my-miss-rate">0%</span>
-            </div>
+            <div class="stat-row"><span class="stat-label">MISSED</span><span class="stat-value bad" id="my-miss-rate">0%</span></div>
             <div class="stat-bar-wrap"><div class="stat-bar bad" id="my-miss-bar" style="width:0%"></div></div>
         </div>
         <div class="stat-player">
             <h3>OPPONENT</h3>
-            <div class="stat-row">
-                <span class="stat-label">SCORED</span>
-                <span class="stat-value good" id="op-score-rate">0%</span>
-            </div>
+            <div class="stat-row"><span class="stat-label">SCORED</span><span class="stat-value good" id="op-score-rate">0%</span></div>
             <div class="stat-bar-wrap"><div class="stat-bar good" id="op-score-bar" style="width:0%"></div></div>
-            <div class="stat-row">
-                <span class="stat-label">MISSED</span>
-                <span class="stat-value bad" id="op-miss-rate">0%</span>
-            </div>
+            <div class="stat-row"><span class="stat-label">MISSED</span><span class="stat-value bad" id="op-miss-rate">0%</span></div>
             <div class="stat-bar-wrap"><div class="stat-bar bad" id="op-miss-bar" style="width:0%"></div></div>
         </div>
     </div>
@@ -308,16 +405,40 @@
     <div id="pause-votes">0 / 2 READY</div>
 </div>
 
+<!-- Game over overlay -->
+<div id="gameover-msg">
+    <div class="result-label" id="gameover-label">GAME OVER</div>
+    <div class="result-title" id="gameover-title">YOU WIN</div>
+    <div class="final-score" id="gameover-score"></div>
+    <div class="gameover-buttons">
+        <a href="/online" class="primary">Play Again</a>
+        <a href="/">Home</a>
+    </div>
+</div>
+
+<!-- Leave confirm overlay -->
+<div id="leave-confirm">
+    <h2>LEAVE MATCH?</h2>
+    <p>YOUR OPPONENT WILL BE DISCONNECTED</p>
+    <div class="leave-buttons">
+        <button class="btn-leave" onclick="confirmLeave('/online')">Find New Game</button>
+        <button class="btn-leave" onclick="confirmLeave('/')">Home</button>
+        <button class="btn-stay" onclick="hideLeaveConfirm()">Stay</button>
+    </div>
+</div>
+
 <script>
 // ── Constants ────────────────────────────────────────────────────────────────
 const CANVAS_W = 800, CANVAS_H = 400;
 const PADDLE_W = 12, PADDLE_H = 90, PADDLE_SPEED = 7;
 const BALL_SIZE = 14;
+const WINNING_SCORE = 7;
 
 // ── State ────────────────────────────────────────────────────────────────────
 let socket;
-let myPlayerNumber = null;   // 1 = left, 2 = right
+let myPlayerNumber = null;
 let gameStarted = false;
+let gameOver = false;
 let paused = false;
 let myUnpauseReady = false;
 
@@ -329,13 +450,27 @@ let myScore = 0, opponentScore = 0;
 let highScore = 0;
 let myScored = 0, myMissed = 0, opScored = 0, opMissed = 0;
 
+// ── Leave match ──────────────────────────────────────────────────────────────
+function showLeaveConfirm() {
+    paused = true;
+    document.getElementById('leave-confirm').style.display = 'flex';
+}
+
+function hideLeaveConfirm() {
+    document.getElementById('leave-confirm').style.display = 'none';
+    paused = false;
+}
+
+function confirmLeave(destination) {
+    socket.disconnect();
+    window.location.href = destination;
+}
+
 // ── Socket setup ─────────────────────────────────────────────────────────────
 function initSocket() {
     socket = io();
 
-    socket.on('connect', () => {
-        socket.emit('find_game');
-    });
+    socket.on('connect', () => { socket.emit('find_game'); });
 
     socket.on('waiting', () => {
         document.getElementById('status-text').innerHTML =
@@ -352,9 +487,7 @@ function initSocket() {
         fetchHighScore();
     });
 
-    socket.on('opponent_paddle', (data) => {
-        opponentPaddleY = data.y;
-    });
+    socket.on('opponent_paddle', (data) => { opponentPaddleY = data.y; });
 
     socket.on('ball_sync', (data) => {
         if (myPlayerNumber === 2) {
@@ -371,7 +504,26 @@ function initSocket() {
         }
     });
 
+    socket.on('game_over', (data) => {
+        gameOver = true;
+        paused = true;
+        const iWon = data.winner === myPlayerNumber;
+
+        const label  = document.getElementById('gameover-label');
+        const title  = document.getElementById('gameover-title');
+        const score  = document.getElementById('gameover-score');
+
+        label.textContent = 'GAME OVER';
+        title.textContent = iWon ? 'YOU WIN' : 'YOU LOSE';
+        title.className   = 'result-title ' + (iWon ? 'win' : 'loss');
+        score.innerHTML   = `<span>${myScore}</span> — <span>${opponentScore}</span>`;
+
+        document.getElementById('gameover-msg').style.display = 'flex';
+    });
+
     socket.on('opponent_disconnected', () => {
+        if (gameOver) return; // ignore if game already ended naturally
+        document.getElementById('leave-confirm').style.display = 'none';
         document.getElementById('disconnect-msg').style.display = 'flex';
     });
 
@@ -387,9 +539,7 @@ function initSocket() {
 
     socket.on('unpause_votes', (data) => {
         document.getElementById('pause-votes').textContent = data.count + ' / 2 READY';
-        if (data.count >= 1) {
-            document.getElementById('pause-votes').classList.add('one-ready');
-        }
+        if (data.count >= 1) document.getElementById('pause-votes').classList.add('one-ready');
     });
 
     socket.on('game_resumed', () => {
@@ -401,12 +551,10 @@ function initSocket() {
 
 // ── High score ───────────────────────────────────────────────────────────────
 function fetchHighScore() {
-    fetch('/highscore')
-        .then(r => r.json())
-        .then(d => {
-            highScore = d.highScore;
-            document.getElementById('high-score-value').textContent = highScore;
-        });
+    fetch('/highscore').then(r => r.json()).then(d => {
+        highScore = d.highScore;
+        document.getElementById('high-score-value').textContent = highScore;
+    });
 }
 
 function updateHighScoreDisplay() {
@@ -429,14 +577,14 @@ function updateStats() {
     function pct(n) { return total === 0 ? 0 : Math.round((n / total) * 100); }
     let mySP = pct(myScored), myMP = pct(myMissed);
     let opSP = pct(opScored), opMP = pct(opMissed);
-    document.getElementById('my-score-rate').textContent = mySP + '%';
-    document.getElementById('my-miss-rate').textContent  = myMP + '%';
-    document.getElementById('op-score-rate').textContent = opSP + '%';
-    document.getElementById('op-miss-rate').textContent  = opMP + '%';
-    document.getElementById('my-score-bar').style.width = mySP + '%';
-    document.getElementById('my-miss-bar').style.width  = myMP + '%';
-    document.getElementById('op-score-bar').style.width = opSP + '%';
-    document.getElementById('op-miss-bar').style.width  = opMP + '%';
+    document.getElementById('my-score-rate').textContent  = mySP + '%';
+    document.getElementById('my-miss-rate').textContent   = myMP + '%';
+    document.getElementById('op-score-rate').textContent  = opSP + '%';
+    document.getElementById('op-miss-rate').textContent   = opMP + '%';
+    document.getElementById('my-score-bar').style.width   = mySP + '%';
+    document.getElementById('my-miss-bar').style.width    = myMP + '%';
+    document.getElementById('op-score-bar').style.width   = opSP + '%';
+    document.getElementById('op-miss-bar').style.width    = opMP + '%';
 }
 
 // ── p5.js sketch ─────────────────────────────────────────────────────────────
@@ -445,11 +593,9 @@ new p5(function(p) {
     p.setup = function() {
         let canvas = p.createCanvas(CANVAS_W, CANVAS_H);
         canvas.parent('game-container');
-
         window.addEventListener('keydown', e => {
             if ([37,38,39,40].includes(e.keyCode)) e.preventDefault();
         });
-
         myPaddleY = CANVAS_H / 2 - PADDLE_H / 2;
         opponentPaddleY = CANVAS_H / 2 - PADDLE_H / 2;
         resetBall(p);
@@ -475,7 +621,7 @@ new p5(function(p) {
     };
 
     p.keyPressed = function() {
-        if (!gameStarted) return;
+        if (!gameStarted || gameOver) return;
         if (p.key === 'p' || p.key === 'P') {
             if (!paused) {
                 socket.emit('pause_game');
@@ -489,41 +635,26 @@ new p5(function(p) {
 
     function handleInput(p) {
         myPaddleSpeed = 0;
-
         let upKey   = myPlayerNumber === 1 ? 87 : p.UP_ARROW;
         let downKey = myPlayerNumber === 1 ? 83 : p.DOWN_ARROW;
-
         if (p.keyIsDown(upKey))   { myPaddleY -= PADDLE_SPEED; myPaddleSpeed = -PADDLE_SPEED; }
-        if (p.keyIsDown(downKey)) { myPaddleY += PADDLE_SPEED; myPaddleSpeed = PADDLE_SPEED; }
-
+        if (p.keyIsDown(downKey)) { myPaddleY += PADDLE_SPEED; myPaddleSpeed =  PADDLE_SPEED; }
         myPaddleY = p.constrain(myPaddleY, 0, CANVAS_H - PADDLE_H);
-
         socket.emit('paddle_move', { y: myPaddleY });
     }
 
     function moveBall(p) {
         ballX += ballSpeedX;
         ballY += ballSpeedY;
-
-        if (ballY <= 0 || ballY >= CANVAS_H - BALL_SIZE) {
-            ballSpeedY *= -1;
-        }
+        if (ballY <= 0 || ballY >= CANVAS_H - BALL_SIZE) ballSpeedY *= -1;
 
         if (ballX < 0) {
-            opponentScore++;
-            myMissed++;
-            opScored++;
-            updateHighScoreDisplay();
-            updateStats();
-            resetBall(p);
+            opponentScore++; myMissed++; opScored++;
+            updateHighScoreDisplay(); updateStats(); resetBall(p);
         }
         if (ballX > CANVAS_W) {
-            myScore++;
-            myScored++;
-            opMissed++;
-            updateHighScoreDisplay();
-            updateStats();
-            resetBall(p);
+            myScore++; myScored++; opMissed++;
+            updateHighScoreDisplay(); updateStats(); resetBall(p);
         }
     }
 
@@ -531,20 +662,13 @@ new p5(function(p) {
         let leftY  = myPaddleY;
         let rightY = opponentPaddleY;
 
-        if (ballX <= PADDLE_W &&
-            ballY + BALL_SIZE >= leftY &&
-            ballY <= leftY + PADDLE_H) {
+        if (ballX <= PADDLE_W && ballY + BALL_SIZE >= leftY && ballY <= leftY + PADDLE_H) {
             let res = collideBall(p, ballSpeedX, ballSpeedY, myPaddleSpeed);
-            ballSpeedX = res.x; ballSpeedY = res.y;
-            ballX = PADDLE_W;
+            ballSpeedX = res.x; ballSpeedY = res.y; ballX = PADDLE_W;
         }
-
-        if (ballX + BALL_SIZE >= CANVAS_W - PADDLE_W &&
-            ballY + BALL_SIZE >= rightY &&
-            ballY <= rightY + PADDLE_H) {
+        if (ballX + BALL_SIZE >= CANVAS_W - PADDLE_W && ballY + BALL_SIZE >= rightY && ballY <= rightY + PADDLE_H) {
             let res = collideBall(p, ballSpeedX, ballSpeedY, 0);
-            ballSpeedX = res.x; ballSpeedY = res.y;
-            ballX = CANVAS_W - PADDLE_W - BALL_SIZE;
+            ballSpeedX = res.x; ballSpeedY = res.y; ballX = CANVAS_W - PADDLE_W - BALL_SIZE;
         }
     }
 
@@ -556,8 +680,7 @@ new p5(function(p) {
     }
 
     function drawPaddles(p) {
-        p.noStroke();
-        p.fill(255);
+        p.noStroke(); p.fill(255);
         if (myPlayerNumber === 1) {
             p.rect(0, myPaddleY, PADDLE_W, PADDLE_H);
             p.rect(CANVAS_W - PADDLE_W, opponentPaddleY, PADDLE_W, PADDLE_H);
@@ -568,16 +691,13 @@ new p5(function(p) {
     }
 
     function drawBall(p) {
-        p.noStroke();
-        p.fill(255);
+        p.noStroke(); p.fill(255);
         p.rect(ballX, ballY, BALL_SIZE, BALL_SIZE);
     }
 
     function drawCenterLine(p) {
         p.stroke(255);
-        for (let y = 0; y < CANVAS_H; y += 20) {
-            p.line(CANVAS_W / 2, y, CANVAS_W / 2, y + 10);
-        }
+        for (let y = 0; y < CANVAS_H; y += 20) p.line(CANVAS_W / 2, y, CANVAS_W / 2, y + 10);
         p.noStroke();
     }
 
@@ -585,8 +705,12 @@ new p5(function(p) {
         p.textAlign(p.CENTER, p.CENTER);
         p.textSize(32);
         p.fill(255);
-        p.text(myScore, CANVAS_W / 4, 40);
+        p.text(myScore,       CANVAS_W / 4,     40);
         p.text(opponentScore, CANVAS_W * 3 / 4, 40);
+        // Draw target score faintly
+        p.textSize(13);
+        p.fill(60);
+        p.text('FIRST TO ' + WINNING_SCORE, CANVAS_W / 2, 40);
     }
 
     function resetBall(p) {

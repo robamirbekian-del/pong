@@ -17,6 +17,8 @@ player_rooms = {}            # sid -> room_id
 player_numbers = {}          # sid -> 1 or 2
 room_pause_state = {}        # room_id -> set of sids ready to unpause
 
+WINNING_SCORE = 7
+
 def read_high_score():
     if not os.path.exists(HIGH_SCORE_FILE):
         return 0
@@ -105,7 +107,16 @@ def on_score_update(data):
     room_id = player_rooms.get(sid)
     if not room_id or player_numbers.get(sid) != 1:
         return
+
+    p1_score = data.get('p1', 0)
+    p2_score = data.get('p2', 0)
+
     emit('score_sync', data, room=room_id, skip_sid=sid)
+
+    # Check for a winner
+    if p1_score >= WINNING_SCORE or p2_score >= WINNING_SCORE:
+        winner = 1 if p1_score >= WINNING_SCORE else 2
+        socketio.emit('game_over', {'winner': winner}, room=room_id)
 
 @socketio.on('pause_game')
 def on_pause_game():
@@ -113,7 +124,7 @@ def on_pause_game():
     room_id = player_rooms.get(sid)
     if not room_id:
         return
-    room_pause_state[room_id] = set()  # reset unpause votes
+    room_pause_state[room_id] = set()
     socketio.emit('game_paused', {'by': player_numbers.get(sid)}, room=room_id)
 
 @socketio.on('unpause_ready')
