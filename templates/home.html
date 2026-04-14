@@ -5,6 +5,7 @@
     <title>PONG</title>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <style>
+
         :root {
             --white: #ffffff;
             --yellow: #f5e642;
@@ -41,6 +42,10 @@
             pointer-events: none;
             z-index: 100;
         }
+
+        {% if flask_env == 'development' %}
+        body { background: #00008b; } /* testing development branch background */
+        {% endif %}
 
         .container {
             display: flex;
