@@ -135,11 +135,7 @@
             align-items: center;
         }
 
-        #high-score {
-            font-size: 20px;
-            letter-spacing: 0.1em;
-        }
-
+        #high-score { font-size: 20px; letter-spacing: 0.1em; }
         #high-score span { color: #f5e642; }
 
         /* Leave button */
@@ -181,17 +177,9 @@
             color: #ff4c4c;
         }
 
-        #leave-confirm p {
-            font-size: 12px;
-            letter-spacing: 0.2em;
-            color: #555;
-        }
+        #leave-confirm p { font-size: 12px; letter-spacing: 0.2em; color: #555; }
 
-        .leave-buttons {
-            display: flex;
-            gap: 16px;
-            margin-top: 8px;
-        }
+        .leave-buttons { display: flex; gap: 16px; margin-top: 8px; }
 
         .leave-buttons button, .leave-buttons a {
             font-family: 'Orbitron', sans-serif;
@@ -302,14 +290,9 @@
             color: #555;
             margin-top: 4px;
         }
-
         #gameover-msg .final-score span { color: #fff; }
 
-        .gameover-buttons {
-            display: flex;
-            gap: 16px;
-            margin-top: 16px;
-        }
+        .gameover-buttons { display: flex; gap: 16px; margin-top: 16px; }
 
         .gameover-buttons a {
             font-family: 'Orbitron', sans-serif;
@@ -322,10 +305,7 @@
             transition: border-color 0.15s;
         }
         .gameover-buttons a:hover { border-color: #fff; }
-        .gameover-buttons a.primary {
-            border-color: #4cff91;
-            color: #4cff91;
-        }
+        .gameover-buttons a.primary { border-color: #4cff91; color: #4cff91; }
         .gameover-buttons a.primary:hover { background: rgba(76,255,145,0.1); }
 
         /* Stats */
@@ -448,6 +428,8 @@ let myPaddleSpeed = 0;
 let ballX, ballY, ballSpeedX, ballSpeedY;
 let myScore = 0, opponentScore = 0;
 let highScore = 0;
+
+// Stats tracked locally by each player based on what they observe
 let myScored = 0, myMissed = 0, opScored = 0, opMissed = 0;
 
 // ── Leave match ──────────────────────────────────────────────────────────────
@@ -466,6 +448,22 @@ function confirmLeave(destination) {
     window.location.href = destination;
 }
 
+// ── Stats ────────────────────────────────────────────────────────────────────
+function updateStats() {
+    let total = myScored + myMissed;
+    function pct(n) { return total === 0 ? 0 : Math.round((n / total) * 100); }
+    let mySP = pct(myScored), myMP = pct(myMissed);
+    let opSP = pct(opScored), opMP = pct(opMissed);
+    document.getElementById('my-score-rate').textContent  = mySP + '%';
+    document.getElementById('my-miss-rate').textContent   = myMP + '%';
+    document.getElementById('op-score-rate').textContent  = opSP + '%';
+    document.getElementById('op-miss-rate').textContent   = opMP + '%';
+    document.getElementById('my-score-bar').style.width   = mySP + '%';
+    document.getElementById('my-miss-bar').style.width    = myMP + '%';
+    document.getElementById('op-score-bar').style.width   = opSP + '%';
+    document.getElementById('op-miss-bar').style.width    = opMP + '%';
+}
+
 // ── Socket setup ─────────────────────────────────────────────────────────────
 function initSocket() {
     socket = io();
@@ -482,47 +480,67 @@ function initSocket() {
         document.getElementById('waiting-screen').style.display = 'none';
         document.getElementById('game-screen').style.display = 'flex';
         document.getElementById('player-label').textContent =
-            myPlayerNumber === 1 ? 'YOU ARE PLAYER 1 — LEFT PADDLE (W / S)' : 'YOU ARE PLAYER 2 — RIGHT PADDLE (↑ / ↓)';
+            myPlayerNumber === 1
+                ? 'YOU ARE PLAYER 1 — LEFT PADDLE (W / S)'
+                : 'YOU ARE PLAYER 2 — RIGHT PADDLE (↑ / ↓)';
         gameStarted = true;
         fetchHighScore();
     });
 
     socket.on('opponent_paddle', (data) => { opponentPaddleY = data.y; });
 
+    // Player 2 receives ball position from Player 1
     socket.on('ball_sync', (data) => {
-        if (myPlayerNumber === 2) {
-            ballX = CANVAS_W - data.x - BALL_SIZE;
-            ballY = data.y;
-        }
+        if (myPlayerNumber !== 2) return;
+        // Mirror ball X for player 2's perspective
+        ballX = CANVAS_W - data.x - BALL_SIZE;
+        ballY = data.y;
+        // Mirror ball speed so P2 can do local collision
+        ballSpeedX = -data.vx;
+        ballSpeedY = data.vy;
     });
 
+    // Player 1 receives bounce correction from Player 2
+    socket.on('p2_bounce', (data) => {
+        if (myPlayerNumber !== 1) return;
+        // data contains corrected ball state from P2's perspective, un-mirror it
+        ballX = CANVAS_W - data.x - BALL_SIZE;
+        ballY = data.y;
+        ballSpeedX = -data.vx;
+        ballSpeedY = data.vy;
+    });
+
+    // Score sync — P2 receives score from P1
     socket.on('score_sync', (data) => {
-        if (myPlayerNumber === 2) {
-            myScore = data.p2;
-            opponentScore = data.p1;
-            updateHighScoreDisplay();
-        }
+        if (myPlayerNumber !== 2) return;
+        const prevMyScore = myScore;
+        const prevOpScore = opponentScore;
+        myScore       = data.p2;
+        opponentScore = data.p1;
+
+        // Derive stat deltas from score changes
+        if (myScore > prevMyScore)       { myScored++;  opMissed++; }
+        if (opponentScore > prevOpScore) { opScored++;  myMissed++; }
+
+        updateHighScoreDisplay();
+        updateStats();
     });
 
     socket.on('game_over', (data) => {
         gameOver = true;
         paused = true;
         const iWon = data.winner === myPlayerNumber;
-
-        const label  = document.getElementById('gameover-label');
-        const title  = document.getElementById('gameover-title');
-        const score  = document.getElementById('gameover-score');
-
-        label.textContent = 'GAME OVER';
+        document.getElementById('gameover-label').textContent = 'GAME OVER';
+        const title = document.getElementById('gameover-title');
         title.textContent = iWon ? 'YOU WIN' : 'YOU LOSE';
         title.className   = 'result-title ' + (iWon ? 'win' : 'loss');
-        score.innerHTML   = `<span>${myScore}</span> — <span>${opponentScore}</span>`;
-
+        document.getElementById('gameover-score').innerHTML =
+            `<span>${myScore}</span> — <span>${opponentScore}</span>`;
         document.getElementById('gameover-msg').style.display = 'flex';
     });
 
     socket.on('opponent_disconnected', () => {
-        if (gameOver) return; // ignore if game already ended naturally
+        if (gameOver) return;
         document.getElementById('leave-confirm').style.display = 'none';
         document.getElementById('disconnect-msg').style.display = 'flex';
     });
@@ -572,21 +590,6 @@ function updateHighScoreDisplay() {
     }
 }
 
-function updateStats() {
-    let total = myScored + myMissed;
-    function pct(n) { return total === 0 ? 0 : Math.round((n / total) * 100); }
-    let mySP = pct(myScored), myMP = pct(myMissed);
-    let opSP = pct(opScored), opMP = pct(opMissed);
-    document.getElementById('my-score-rate').textContent  = mySP + '%';
-    document.getElementById('my-miss-rate').textContent   = myMP + '%';
-    document.getElementById('op-score-rate').textContent  = opSP + '%';
-    document.getElementById('op-miss-rate').textContent   = opMP + '%';
-    document.getElementById('my-score-bar').style.width   = mySP + '%';
-    document.getElementById('my-miss-bar').style.width    = myMP + '%';
-    document.getElementById('op-score-bar').style.width   = opSP + '%';
-    document.getElementById('op-miss-bar').style.width    = opMP + '%';
-}
-
 // ── p5.js sketch ─────────────────────────────────────────────────────────────
 new p5(function(p) {
 
@@ -596,7 +599,7 @@ new p5(function(p) {
         window.addEventListener('keydown', e => {
             if ([37,38,39,40].includes(e.keyCode)) e.preventDefault();
         });
-        myPaddleY = CANVAS_H / 2 - PADDLE_H / 2;
+        myPaddleY       = CANVAS_H / 2 - PADDLE_H / 2;
         opponentPaddleY = CANVAS_H / 2 - PADDLE_H / 2;
         resetBall(p);
         initSocket();
@@ -607,11 +610,16 @@ new p5(function(p) {
         if (!gameStarted || paused) return;
 
         handleInput(p);
+
         if (myPlayerNumber === 1) {
             moveBall(p);
-            checkCollisions(p);
-            socket.emit('ball_update', { x: ballX, y: ballY });
+            checkCollisionsP1(p);
+            // Send ball state including velocity so P2 can do local collision
+            socket.emit('ball_update', { x: ballX, y: ballY, vx: ballSpeedX, vy: ballSpeedY });
             socket.emit('score_update', { p1: myScore, p2: opponentScore });
+        } else {
+            // P2: check collision against their own paddle locally
+            checkCollisionsP2(p);
         }
 
         drawCenterLine(p);
@@ -643,32 +651,60 @@ new p5(function(p) {
         socket.emit('paddle_move', { y: myPaddleY });
     }
 
+    // ── Player 1 physics ─────────────────────────────────────────────────────
+
     function moveBall(p) {
         ballX += ballSpeedX;
         ballY += ballSpeedY;
+
+        // Wall bounce
         if (ballY <= 0 || ballY >= CANVAS_H - BALL_SIZE) ballSpeedY *= -1;
 
+        // Ball exits left (P1 missed)
         if (ballX < 0) {
             opponentScore++; myMissed++; opScored++;
             updateHighScoreDisplay(); updateStats(); resetBall(p);
         }
+        // Ball exits right (P2 missed)
         if (ballX > CANVAS_W) {
             myScore++; myScored++; opMissed++;
             updateHighScoreDisplay(); updateStats(); resetBall(p);
         }
     }
 
-    function checkCollisions(p) {
-        let leftY  = myPaddleY;
-        let rightY = opponentPaddleY;
-
-        if (ballX <= PADDLE_W && ballY + BALL_SIZE >= leftY && ballY <= leftY + PADDLE_H) {
+    // P1 handles left paddle collision only
+    function checkCollisionsP1(p) {
+        if (ballX <= PADDLE_W &&
+            ballY + BALL_SIZE >= myPaddleY &&
+            ballY <= myPaddleY + PADDLE_H) {
             let res = collideBall(p, ballSpeedX, ballSpeedY, myPaddleSpeed);
-            ballSpeedX = res.x; ballSpeedY = res.y; ballX = PADDLE_W;
+            ballSpeedX = res.x; ballSpeedY = res.y;
+            ballX = PADDLE_W;
         }
-        if (ballX + BALL_SIZE >= CANVAS_W - PADDLE_W && ballY + BALL_SIZE >= rightY && ballY <= rightY + PADDLE_H) {
-            let res = collideBall(p, ballSpeedX, ballSpeedY, 0);
-            ballSpeedX = res.x; ballSpeedY = res.y; ballX = CANVAS_W - PADDLE_W - BALL_SIZE;
+    }
+
+    // ── Player 2 local collision ──────────────────────────────────────────────
+    // P2 checks their own (right) paddle. Because P2's screen is mirrored,
+    // their paddle is on the RIGHT visually but we track it as myPaddleY.
+    // ballX on P2's screen is already mirrored (0 = their side).
+    function checkCollisionsP2(p) {
+        // P2's paddle is on the left of their mirrored view (ballX approaching 0)
+        if (ballX <= PADDLE_W &&
+            ballSpeedX < 0 &&
+            ballY + BALL_SIZE >= myPaddleY &&
+            ballY <= myPaddleY + PADDLE_H) {
+
+            let res = collideBall(p, ballSpeedX, ballSpeedY, myPaddleSpeed);
+            ballSpeedX = res.x; ballSpeedY = res.y;
+            ballX = PADDLE_W;
+
+            // Send corrected ball state back to P1
+            socket.emit('p2_bounce', {
+                x: ballX,
+                y: ballY,
+                vx: ballSpeedX,
+                vy: ballSpeedY
+            });
         }
     }
 
@@ -681,13 +717,9 @@ new p5(function(p) {
 
     function drawPaddles(p) {
         p.noStroke(); p.fill(255);
-        if (myPlayerNumber === 1) {
-            p.rect(0, myPaddleY, PADDLE_W, PADDLE_H);
-            p.rect(CANVAS_W - PADDLE_W, opponentPaddleY, PADDLE_W, PADDLE_H);
-        } else {
-            p.rect(0, opponentPaddleY, PADDLE_W, PADDLE_H);
-            p.rect(CANVAS_W - PADDLE_W, myPaddleY, PADDLE_W, PADDLE_H);
-        }
+        // Both players see themselves on the left, opponent on the right
+        p.rect(0,              myPaddleY,       PADDLE_W, PADDLE_H);
+        p.rect(CANVAS_W - PADDLE_W, opponentPaddleY, PADDLE_W, PADDLE_H);
     }
 
     function drawBall(p) {
@@ -707,7 +739,6 @@ new p5(function(p) {
         p.fill(255);
         p.text(myScore,       CANVAS_W / 4,     40);
         p.text(opponentScore, CANVAS_W * 3 / 4, 40);
-        // Draw target score faintly
         p.textSize(13);
         p.fill(60);
         p.text('FIRST TO ' + WINNING_SCORE, CANVAS_W / 2, 40);

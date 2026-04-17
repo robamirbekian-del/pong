@@ -19,10 +19,6 @@ room_pause_state = {}        # room_id -> set of sids ready to unpause
 
 WINNING_SCORE = 7
 
-@app.context_processor
-def inject_env():
-    return dict(flask_env=os.environ.get('FLASK_ENV', 'production'))
-
 def read_high_score():
     if not os.path.exists(HIGH_SCORE_FILE):
         return 0
@@ -105,6 +101,15 @@ def on_ball_update(data):
         return
     emit('ball_sync', data, room=room_id, skip_sid=sid)
 
+# Player 2 detected a bounce on their paddle — relay corrected ball state to Player 1
+@socketio.on('p2_bounce')
+def on_p2_bounce(data):
+    sid = request.sid
+    room_id = player_rooms.get(sid)
+    if not room_id or player_numbers.get(sid) != 2:
+        return
+    emit('p2_bounce', data, room=room_id, skip_sid=sid)
+
 @socketio.on('score_update')
 def on_score_update(data):
     sid = request.sid
@@ -164,6 +169,7 @@ def on_disconnect():
         del rooms[room_id]
 
 if __name__ == "__main__":
+    import os
     port = int(os.environ.get("PORT", 5000))
     print(port)
     socketio.run(app, host="0.0.0.0", port=port)
